@@ -22,7 +22,7 @@ TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FMP_IND_ticker.txt")
 
 # Backfill configuration
 SLEEP_SECONDS = 0.5
-START_DATE = "2025-01-01"
+START_DATE = "2005-01-01"
 END_DATE = "2026-03-11"
 
 # RDS env vars
