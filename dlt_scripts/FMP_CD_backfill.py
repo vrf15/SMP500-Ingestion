@@ -1,4 +1,4 @@
-# FMP backfill script for COMS COMPANIES
+# FMP backfill script for CD COMPANIES
 
 # Library imports
 import os
@@ -18,7 +18,7 @@ API_KEY = os.getenv("FMP_API_KEY")
 BASE_URL = "https://financialmodelingprep.com/stable/historical-price-eod/full"
 
 # Container-mounted paths
-TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FMP_COMS_ticker.txt")
+TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FMP_CD_ticker.txt")
 
 # Backfill configuration
 SLEEP_SECONDS = 0.5
@@ -32,9 +32,9 @@ DB_NAME = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__DATABASE")
 DB_USER = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__USERNAME")
 DB_PASSWORD = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__PASSWORD")
 DB_SCHEMA = "raw_smp500"
-DB_TABLE = "raw_fmp_coms_prices_backfill"
+DB_TABLE = "raw_fmp_cd_prices_backfill"
 S3_BUCKET = os.getenv("S3_BUCKET")
-S3_PREFIX = "smp500_ingestion/fmp_coms_prices_backfill"
+S3_PREFIX = "smp500_ingestion/fmp_cd_prices_backfill"
 
 # Reading through the ticker file
 def read_tickers(file_path):
@@ -66,7 +66,7 @@ def enrich_rows(rows, ticker):
 # Uploading to S3
 def upload_df_to_s3(df):
     s3 = boto3.client("s3")
-    file_name = f"fmp_coms_backfill_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    file_name = f"fmp_cd_backfill_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
     s3_key = f"{S3_PREFIX}/{file_name}"
 
     csv_body = df.to_csv(index=False)
