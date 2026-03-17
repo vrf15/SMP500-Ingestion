@@ -3,6 +3,11 @@
 This repo will show my entire ingestion process. Feel free to inspect the dags, dbt, and other components.
 
 -----
+## I WILL BE RE-ORGANIZING THE PROJECT TO INCLUDE S&P MID-CAP 400 AND ALLOW DYNAMODB INTO THE STACK.
+
+I will explain further in the project logs.
+
+-----
 ### Future-Plans
 
 LONG TERM
