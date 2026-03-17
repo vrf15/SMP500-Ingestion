@@ -1,0 +1,22 @@
+version: 2
+
+sources:
+  - name: raw_smp500
+    schema: raw_smp500
+    tables:
+      - name: raw_fmp_cd_prices_daily
+      - name: raw_fmp_cd_prices_backfill
+      - name: raw_fmp_coms_prices_daily
+      - name: raw_fmp_coms_prices_backfill
+      - name: raw_fmp_cs_prices_daily
+      - name: raw_fmp_cs_prices_backfill
+      - name: raw_fmp_en_prices_daily
+      - name: raw_fmp_en_prices_backfill
+      - name: raw_fmp_fin_prices_daily
+      - name: raw_fmp_fin_prices_backfill
+      - name: raw_fmp_hc_prices_daily
+      - name: raw_fmp_hc_prices_backfill
+      - name: raw_fmp_ind_prices_daily
+      - name: raw_fmp_ind_prices_backfill
+      - name: raw_fmp_it_prices_daily
+      - name: raw_fmp_it_prices_backfill
