@@ -1,25 +1,27 @@
-#
 name: 'sp500'
 version: '1.0.0'
-#
+ 
 profile: 'sp500'
-#
+ 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
 seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
-#
+ 
 clean-targets:
   - "target"
   - "dbt_packages"
-#
-#
-# We are going to go for 4-layer model here.
-# raw                 - not added to dbt, raw data from source
-# stg   (staging)     - data validation
-# core                - business logic and pre-aggregations
-# mart                - sliced data for dashboards
+ 
 models:
   sp500:
+    staging:
+      +schema: stg
+      +materialized: view
+    core:
+      +schema: core
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
