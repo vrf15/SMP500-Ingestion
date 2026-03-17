@@ -2,6 +2,21 @@
 
 This repo will show my entire ingestion process. Feel free to inspect the dags, dbt, and other components.
 
+-----
+### Future-Plans
+
+LONG TERM
+
+- Considering OLAP integration (once combined ingestion and transformation workloads of this and other projects reach gigabytes of ingestion and transformation daily)
+- Automating scrapers (admittedly, I am not too familiar with this concept)
+- Creating a dashboard for each sector
+
+SHORT TERM
+
+- Creating the daily ingestion scripts for the dims
+- Renaming FMP scripts to be more specific
+- Testing Alpha Vantage and Polygon.io for data ingestion
+
 ------
 ### List of APIs
 

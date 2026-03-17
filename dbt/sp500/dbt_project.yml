@@ -17,11 +17,11 @@ clean-targets:
 models:
   sp500:
     staging:
-      +schema: stg
+      +schema: stg_smp500
       +materialized: view
     core:
-      +schema: core
+      +schema: core_smp500
       +materialized: table
     marts:
-      +schema: marts
+      +schema: marts_smp500
       +materialized: table
