@@ -20,9 +20,13 @@ BASE_URL = "https://api.tiingo.com/tiingo/daily"
 # Container-mounted paths
 TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/sp500_batch10.txt")
 
-# Ingestion configuration
+# Ingestion configuration; added now_et if/else because pulls return 0 cells after midnight
 SLEEP_SECONDS = 0.5
-RUN_DATE = pendulum.now("America/New_York").strftime("%Y-%m-%d")
+now_et = pendulum.now("America/New_York")
+if now_et.hour < 16:
+    RUN_DATE = now_et.subtract(days=1).strftime("%Y-%m-%d")
+else:
+    RUN_DATE = now_et.strftime("%Y-%m-%d")
 
 # RDS env vars
 DB_HOST = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__HOST")
