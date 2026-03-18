@@ -19,7 +19,7 @@ default_args = {
 with DAG(
     dag_id="smp500_tngo_batch6_ingestion_dag",
     default_args=default_args,
-    description="Daily TNGO Batch 1 ingestion to S3 and Postgres",
+    description="Daily TNGO Batch 6 ingestion to S3 and Postgres",
     start_date=datetime(2026, 3, 17, tzinfo=pendulum.timezone("America/New_York")),
     schedule="45 22 * * 1-5",
     catchup=False,
