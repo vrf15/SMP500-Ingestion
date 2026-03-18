@@ -21,7 +21,7 @@ with DAG(
     default_args=default_args,
     description="Daily TNGO Batch 1 ingestion to S3 and Postgres",
     start_date=datetime(2026, 3, 17, tzinfo=pendulum.timezone("America/New_York")),
-    schedule="15 20 * * 1-5",
+    schedule="45 21 * * 1-5",
     catchup=False,
     tags=["smp500", "tngo", "batch5", "ingestion"],
 ) as dag:
