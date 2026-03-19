@@ -44,18 +44,49 @@ def read_tickers(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
-# Fetching data and handles error
+# Fetching data with 429 retry logic (3 attempts, exponential backoff: 5s, 10s, 20s)
 def fetch_ticker_data(ticker, run_date):
     url = f"{BASE_URL}/{ticker}/prices"
     params = {"startDate": run_date, "endDate": run_date, "token": API_KEY}
-    response = requests.get(url, params=params, timeout=30)
-    response.raise_for_status()
-    try:
-        data = response.json()
-    except ValueError:
-        print(f"{ticker}: non-JSON response")
-        return []
-    return data if isinstance(data, list) else []
+    max_retries = 3
+    backoff_seconds = [5, 10, 20]
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, params=params, timeout=30)
+
+            # Handle 429 rate limit with retry
+            if response.status_code == 429:
+                if attempt < max_retries - 1:
+                    wait = backoff_seconds[attempt]
+                    print(f"{ticker}: 429 rate limited. Retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                else:
+                    print(f"{ticker}: FAILED after {max_retries} retries (429 rate limit)")
+                    return []
+
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+            except ValueError:
+                print(f"{ticker}: non-JSON response")
+                return []
+
+            return data if isinstance(data, list) else []
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                wait = backoff_seconds[attempt]
+                print(f"{ticker}: request error ({e}). Retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait)
+                continue
+            else:
+                print(f"{ticker}: FAILED after {max_retries} retries ({e})")
+                return []
+
+    return []
 
 # Metadata fields added
 def enrich_rows(rows, ticker):
@@ -95,6 +126,12 @@ def main():
         time.sleep(SLEEP_SECONDS)
 
     df = pd.DataFrame(all_rows)
+
+    # Guard: skip upload if no data returned (prevents empty tables with wrong schema)
+    if df.empty:
+        print(f"No data returned for RUN_DATE={RUN_DATE}. Skipping upload.")
+        return
+
     s3_key = upload_df_to_s3(df)
 
     df["s3_key"] = s3_key
