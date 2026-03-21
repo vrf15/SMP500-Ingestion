@@ -1,4 +1,4 @@
-# TDAT ingestion script for SP MidCap 400 and some overflow
+# TNGO backfill script for BATCH 1
 
 # Library imports
 import os
@@ -11,22 +11,19 @@ import requests
 import pandas as pd
 import boto3
 from sqlalchemy import create_engine
-import pendulum
 
 # API config
-API_KEY = os.getenv("TDAT_API_KEY")
-BASE_URL = "https://api.twelvedata.com/time_series"
+API_KEY = os.getenv("TNGO_API_KEY")
+BASE_URL = "https://api.tiingo.com/tiingo/daily"
 
 # Container-mounted paths
-TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TDAT_SP403_ticker.txt")
+TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TNGO_SP500_BATCH1_ticker.txt")
 
-# Ingestion configuration; 15s sleep to stay safely under 8 credits/min limit
-SLEEP_SECONDS = 15
-now_et = pendulum.now("America/New_York")
-if now_et.hour < 16:
-    RUN_DATE = now_et.subtract(days=1).strftime("%Y-%m-%d")
-else:
-    RUN_DATE = now_et.strftime("%Y-%m-%d")
+# Backfill configuration — edit these dates before running
+START_DATE = "1995-01-01"
+END_DATE = "2026-03-20"
+SLEEP_SECONDS = 0.5
+RUN_DATE = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 # RDS env vars
 DB_HOST = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__HOST")
@@ -35,31 +32,27 @@ DB_NAME = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__DATABASE")
 DB_USER = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__USERNAME")
 DB_PASSWORD = os.getenv("DESTINATION__POSTGRES__CREDENTIALS__PASSWORD")
 DB_SCHEMA = "raw_smp500"
-DB_TABLE = "raw_tdat_prices_daily"
+DB_TABLE = "raw_tngo_batch1_prices_backfill"
 S3_BUCKET = os.getenv("S3_BUCKET")
-S3_PREFIX = "smp500_ingestion/tdat_prices_daily"
+S3_PREFIX = "smp500_ingestion/tngo_batch1_prices_backfill"
 
 # Reading through the ticker file
 def read_tickers(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+        return [line.strip() for line in f if line.strip()]
 
-# Fetching data with retry logic... free cannot use start/end date
-def fetch_ticker_data(ticker):
-    params = {
-        "symbol": ticker,
-        "interval": "1day",
-        "outputsize": 1,
-        "apikey": API_KEY,
-    }
+# Fetching data with 429 retry logic (3 attempts, exponential backoff: 5s, 10s, 20s)
+def fetch_ticker_data(ticker, start_date, end_date):
+    url = f"{BASE_URL}/{ticker}/prices"
+    params = {"startDate": start_date, "endDate": end_date, "token": API_KEY}
     max_retries = 3
-    backoff_seconds = [15, 30, 60]
+    backoff_seconds = [5, 10, 20]
 
     for attempt in range(max_retries):
         try:
-            response = requests.get(BASE_URL, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=30)
 
-            # Just in-case for 429 errors
+            # Handle 429 rate limit with retry
             if response.status_code == 429:
                 if attempt < max_retries - 1:
                     wait = backoff_seconds[attempt]
@@ -78,14 +71,7 @@ def fetch_ticker_data(ticker):
                 print(f"{ticker}: non-JSON response")
                 return []
 
-            # Twelve Data returns error status on bad tickers or no data
-            if data.get("status") == "error":
-                print(f"{ticker}: API error — {data.get('message', 'unknown')}")
-                return []
-
-            # Single-ticker response
-            values = data.get("values", [])
-            return values if isinstance(values, list) else []
+            return data if isinstance(data, list) else []
 
         except requests.exceptions.RequestException as e:
             if attempt < max_retries - 1:
@@ -104,7 +90,7 @@ def enrich_rows(rows, ticker):
     ingestion_time = datetime.now(timezone.utc).isoformat()
     for row in rows:
         row["requested_symbol"] = ticker
-        row["source_api"] = "twelve_data"
+        row["source_api"] = "tiingo"
         row["run_date"] = RUN_DATE
         row["ingested_at"] = ingestion_time
     return rows
@@ -112,7 +98,7 @@ def enrich_rows(rows, ticker):
 # Uploading to S3
 def upload_df_to_s3(df):
     s3 = boto3.client("s3")
-    file_name = f"tdat_prices_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    file_name = f"tngo_batch1_backfill_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
     s3_key = f"{S3_PREFIX}/{file_name}"
 
     csv_body = df.to_csv(index=False)
@@ -120,7 +106,7 @@ def upload_df_to_s3(df):
 
     return s3_key
 
-# Uploading to RDBMS
+# Uploading to RSDB
 def load_to_postgres(df):
     engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
     df.to_sql(DB_TABLE, engine, schema=DB_SCHEMA, if_exists="append", index=False, method="multi")
@@ -132,7 +118,7 @@ def main():
 
     for ticker in tickers:
         print(f"Requesting: {ticker}")
-        rows = fetch_ticker_data(ticker)
+        rows = fetch_ticker_data(ticker, START_DATE, END_DATE)
         all_rows.extend(enrich_rows(rows, ticker))
         time.sleep(SLEEP_SECONDS)
 
@@ -140,7 +126,7 @@ def main():
 
     # Guard: skip upload if no data returned (prevents empty tables with wrong schema)
     if df.empty:
-        print(f"No data returned for RUN_DATE={RUN_DATE}. Skipping upload.")
+        print(f"No data returned for {START_DATE} to {END_DATE}. Skipping upload.")
         return
 
     s3_key = upload_df_to_s3(df)
