@@ -164,7 +164,7 @@ def main():
     # Stream rows into a CSV buffer instead of accumulating in a list
     csv_buffer = io.StringIO()
     # Write header row (without s3_key — added during Postgres load)
-    writer = csv.DictWriter(csv_buffer, fieldnames=CSV_COLUMNS[:-1])
+    writer = csv.DictWriter(csv_buffer, fieldnames=CSV_COLUMNS[:-1], extrasaction='ignore')
     writer.writeheader()
 
     row_count = 0
