@@ -1,41 +1,29 @@
 # S&P500 Ingestion Repo
 
-This repo will show my entire ingestion process. Feel free to inspect the dags, dbt, and other components.
-
------
-## I WILL BE RE-ORGANIZING THE PROJECT TO INCLUDE S&P MID-CAP 400 AND ALLOW DYNAMODB INTO THE STACK.
-
-I will explain further in the project logs.
+This repo will show my entire pipelining process. Feel free to inspect the dags, dbt, and other components.
 
 -----
 ### Future-Plans
 
 LONG TERM
 
-- Considering OLAP integration (once combined ingestion and transformation workloads of this and other projects reach gigabytes of ingestion and transformation daily)
-- Automating scrapers (admittedly, I am not too familiar with this concept)
-- Creating a dashboard for each sector
+- Considering OLAP integration for platform familiarity
+- Learn and deploy automated scrapers
+- Creating a dashboard for each SP500 sector and learn ML principles from this project
 
 SHORT TERM
 
-- Creating the daily ingestion scripts for the dims
-- Renaming FMP scripts to be more specific
-- Testing Alpha Vantage and Polygon.io for data ingestion
+- Finalize data ingestion from FMP, TNGO, TDAT, and FHUB.
+- Bury myself in making lots of dbt work
+- Analyze my current ingestion dlt_scripts and make alternate changes for specific situations
 
 ------
 ### List of APIs
 
-- Financial Modeling Prep (starting off with this for quick dashboard building)
+- Tiingo (Current main SP500 prices api)
+- TwelveData (What I use for Mid Cap 400 prices, but it only returns unadjusted prices so altnernatives req.)
+- Finnhub (Very generous API pull limits for free-tier, currently exploring)
+- Financial Modeling Prep (too restrictive on free tier)
 - Alpha Vantage
-- Polygon.io
-
------
-### AI usage in this project
-
-AI usage on this ingestion process will be minimal. The purpose of this process is to strengthen my
-technical abilities in bash, python, and SQL with jinja templating.
-
-AI will be used specifically to teach new concepts, elaborate on previously learned techniques, or
-fill in very long redundant pieces of code that I should already remember (Ex: list of companies).
 
 
