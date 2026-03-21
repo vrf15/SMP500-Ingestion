@@ -18,7 +18,7 @@ API_KEY = os.getenv("TNGO_API_KEY")
 BASE_URL = "https://api.tiingo.com/tiingo/daily"
 
 # Container-mounted paths
-TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TNGO_SP500_BATCH6_prices_ticker.txt")
+TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TNGO_SP500_BATCH6_ticker.txt")
 
 # Ingestion configuration; added now_et if/else because pulls return 0 cells after midnight
 SLEEP_SECONDS = 0.5
