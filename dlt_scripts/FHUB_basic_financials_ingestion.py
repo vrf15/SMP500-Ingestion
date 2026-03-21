@@ -20,8 +20,8 @@ BASE_URL = "https://finnhub.io/api/v1/stock/metric"
 # Container-mounted paths
 TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FHUB_SP903_ticker.txt")
 
-# Ingestion configuration; 1s sleep keeps us under 60 calls/min (FHUB api specific limit)
-SLEEP_SECONDS = 1
+# Ingestion configuration; 1.01s sleep keeps us under 60 calls/min (FHUB api specific limit)
+SLEEP_SECONDS = 1.01
 now_et = pendulum.now("America/New_York")
 if now_et.hour < 16:
     RUN_DATE = now_et.subtract(days=1).strftime("%Y-%m-%d")
