@@ -44,14 +44,12 @@ def read_tickers(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
-# Fetching data with retry logic
-def fetch_ticker_data(ticker, run_date):
+# Fetching data with retry logic... free cannot use start/end date
+def fetch_ticker_data(ticker):
     params = {
         "symbol": ticker,
         "interval": "1day",
-        "start_date": run_date,
-        "end_date": run_date,
-        "adjust": "all",
+        "outputsize": 1,
         "apikey": API_KEY,
     }
     max_retries = 3
