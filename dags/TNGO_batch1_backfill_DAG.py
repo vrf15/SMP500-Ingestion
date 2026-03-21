@@ -20,7 +20,7 @@ with DAG(
     dag_id="smp500_tngo_batch1_backfill_dag",
     default_args=default_args,
     description="Weekly TNGO Batch 1 backfill to S3 and Postgres",
-    start_date=datetime(2026, 3, 22, tzinfo=pendulum.timezone("America/New_York")),
+    start_date=datetime(2026, 3, 21, tzinfo=pendulum.timezone("America/New_York")),
     schedule="30 17 * * 0",
     catchup=False,
     tags=["smp500", "tngo", "batch1", "backfill"],
