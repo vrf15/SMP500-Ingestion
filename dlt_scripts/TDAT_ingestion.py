@@ -18,7 +18,7 @@ API_KEY = os.getenv("TDAT_API_KEY")
 BASE_URL = "https://api.twelvedata.com/time_series"
 
 # Container-mounted paths
-TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/SP403_ticker.txt")
+TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TDAT_SP403_prices_ticker.txt")
 
 # Ingestion configuration; 15s sleep to stay safely under 8 credits/min limit
 SLEEP_SECONDS = 15
