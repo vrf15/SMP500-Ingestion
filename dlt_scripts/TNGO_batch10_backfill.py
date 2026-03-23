@@ -132,7 +132,7 @@ def load_to_postgres(csv_body, s3_key, engine):
 
     columns = CSV_COLUMNS
     placeholders = ", ".join([f":{col}" for col in columns])
-    col_names = ", ".join(columns)
+    col_names = ", ".join([f'"{col}"' for col in columns])
     insert_sql = text(f"INSERT INTO {DB_SCHEMA}.{DB_TABLE} ({col_names}) VALUES ({placeholders})")
 
     for row in reader:
