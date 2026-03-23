@@ -18,7 +18,7 @@ API_KEY = os.getenv("TDAT_API_KEY")
 BASE_URL = "https://api.twelvedata.com/time_series"
 
 # Container-mounted paths
-TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TDAT_SP403_ticker.txt")
+TICKER_FILE = Path(os.path.expanduser("~/projects/smp500_ingestion/config/TDAT_SP403_ticker.txt"))
 
 # Backfill configuration
 # 15s sleep to stay safely under 8 credits/min limit
