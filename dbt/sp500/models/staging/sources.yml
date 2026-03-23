@@ -4,6 +4,7 @@ sources:
   - name: raw_smp500
     schema: raw_smp500
     tables:
+    # FMP Tables
       - name: raw_fmp_cd_prices_daily
       - name: raw_fmp_cd_prices_backfill
       - name: raw_fmp_coms_prices_daily
@@ -20,3 +21,24 @@ sources:
       - name: raw_fmp_ind_prices_backfill
       - name: raw_fmp_it_prices_daily
       - name: raw_fmp_it_prices_backfill
+      # TNGO Tables
+      - name: raw_tngo_batch10_prices_backfill
+      - name: raw_tngo_batch10_prices_daily
+      - name: raw_tngo_batch1_prices_backfill
+      - name: raw_tngo_batch1_prices_daily
+      - name: raw_tngo_batch2_prices_backfill
+      - name: raw_tngo_batch2_prices_daily
+      - name: raw_tngo_batch3_prices_backfill
+      - name: raw_tngo_batch3_prices_daily
+      - name: raw_tngo_batch4_prices_backfill
+      - name: raw_tngo_batch4_prices_daily
+      - name: raw_tngo_batch5_prices_backfill
+      - name: raw_tngo_batch5_prices_daily
+      - name: raw_tngo_batch6_prices_backfill
+      - name: raw_tngo_batch6_prices_daily
+      - name: raw_tngo_batch7_prices_backfill
+      - name: raw_tngo_batch7_prices_daily
+      - name: raw_tngo_batch8_prices_backfill
+      - name: raw_tngo_batch8_prices_daily
+      - name: raw_tngo_batch9_prices_backfill
+      - name: raw_tngo_batch9_prices_daily
