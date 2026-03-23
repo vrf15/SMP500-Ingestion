@@ -1,16 +1,17 @@
 # FMP ingestion script for IT COMPANIES
 
 # Library imports
-import os 
-import time 
-from pathlib import Path 
+import os
+import csv
+import io
+import time
+from pathlib import Path
 from datetime import datetime, timezone
 
 # Non-native libraries
-import requests 
-import pandas as pd
+import requests
 import boto3
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import pendulum
 
 # API config
@@ -20,7 +21,7 @@ BASE_URL = "https://financialmodelingprep.com/stable/historical-price-eod/full"
 # Container-mounted paths
 TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FMP_IT_ticker.txt")
 
-# Ingestion configuration (0.5 seems pretty safe for now)
+# Ingestion configuration
 SLEEP_SECONDS = 0.5
 RUN_DATE = pendulum.now("America/New_York").strftime("%Y-%m-%d")
 
@@ -35,25 +36,63 @@ DB_TABLE = "raw_fmp_it_prices_daily"
 S3_BUCKET = os.getenv("S3_BUCKET")
 S3_PREFIX = "smp500_ingestion/fmp_it_prices_daily"
 
-# Reading through the ticker file
-def read_tickers(file_path: Path) -> list[str]:
-    with open(file_path, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
+# CSV column order — matches the raw table schema
+CSV_COLUMNS = [
+    "symbol", "date", "open", "high", "low", "close", "volume",
+    "change", "changePercent", "vwap",
+    "requested_symbol", "source_api", "run_date", "ingested_at", "s3_key",
+]
 
-# Fetching data and handles errors
-def fetch_ticker_data(ticker: str, run_date: str) -> list[dict]:
+# Reading through the ticker file
+def read_tickers(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+
+# Fetching data with retry logic
+def fetch_ticker_data(session, ticker, run_date):
     params = {"symbol": ticker, "from": run_date, "to": run_date, "apikey": API_KEY}
-    response = requests.get(BASE_URL, params=params, timeout=30)
-    response.raise_for_status()
-    try:
-        data = response.json()
-    except ValueError:
-        print(f"{ticker}: non-JSON response")
-        return []
-    return data if isinstance(data, list) else []
+    max_retries = 3
+    backoff_seconds = [5, 10, 20]
+
+    for attempt in range(max_retries):
+        try:
+            response = session.get(BASE_URL, params=params, timeout=30)
+
+            # Handle 429 rate limit with retry
+            if response.status_code == 429:
+                if attempt < max_retries - 1:
+                    wait = backoff_seconds[attempt]
+                    print(f"{ticker}: 429 rate limited. Retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                else:
+                    print(f"{ticker}: FAILED after {max_retries} retries (429 rate limit)")
+                    return []
+
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+            except ValueError:
+                print(f"{ticker}: non-JSON response")
+                return []
+
+            return data if isinstance(data, list) else []
+
+        except requests.exceptions.RequestException as e:
+            if attempt < max_retries - 1:
+                wait = backoff_seconds[attempt]
+                print(f"{ticker}: request error ({e}). Retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait)
+                continue
+            else:
+                print(f"{ticker}: FAILED after {max_retries} retries ({e})")
+                return []
+
+    return []
 
 # Metadata fields added
-def enrich_rows(rows: list[dict], ticker: str) -> list[dict]:
+def enrich_rows(rows, ticker):
     ingestion_time = datetime.now(timezone.utc).isoformat()
     for row in rows:
         row["requested_symbol"] = ticker
@@ -63,40 +102,82 @@ def enrich_rows(rows: list[dict], ticker: str) -> list[dict]:
     return rows
 
 # Uploading to S3
-def upload_df_to_s3(df: pd.DataFrame) -> str:
+def upload_csv_to_s3(csv_body):
     s3 = boto3.client("s3")
     file_name = f"fmp_it_prices_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
     s3_key = f"{S3_PREFIX}/{file_name}"
 
-    csv_body = df.to_csv(index=False)
     s3.put_object(Bucket=S3_BUCKET, Key=s3_key, Body=csv_body)
 
     return s3_key
 
-# Uploading to RSDB Postgres
-def load_to_postgres(df: pd.DataFrame) -> None:
+# Uploading to RDBMS
+def load_to_postgres(csv_body, s3_key):
     engine = create_engine(f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-    df.to_sql(DB_TABLE, engine, schema=DB_SCHEMA, if_exists="append", index=False, method="multi")
+    try:
+        # Read the CSV back and insert rows with s3_key appended
+        reader = csv.DictReader(io.StringIO(csv_body))
+        rows = []
+        for row in reader:
+            row["s3_key"] = s3_key
+            rows.append(row)
 
-# Main; everything comes together
+        if not rows:
+            return 0
+
+        # Build a single parameterized INSERT
+        columns = CSV_COLUMNS
+        placeholders = ", ".join([f":{col}" for col in columns])
+        col_names = ", ".join(columns)
+        insert_sql = text(f"INSERT INTO {DB_SCHEMA}.{DB_TABLE} ({col_names}) VALUES ({placeholders})")
+
+        with engine.connect() as conn:
+            conn.execute(insert_sql, rows)
+            conn.commit()
+
+        return len(rows)
+    finally:
+        engine.dispose()
+
+# Main
 def main():
     tickers = read_tickers(TICKER_FILE)
-    all_rows = []
 
+    # Reuse one TCP connection across all API calls
+    session = requests.Session()
+
+    # Stream rows into a CSV buffer instead of accumulating in a list
+    csv_buffer = io.StringIO()
+    # Write header row (without s3_key — added during Postgres load)
+    writer = csv.DictWriter(csv_buffer, fieldnames=CSV_COLUMNS[:-1], extrasaction='ignore')
+    writer.writeheader()
+
+    row_count = 0
     for ticker in tickers:
         print(f"Requesting: {ticker}")
-        rows = fetch_ticker_data(ticker, RUN_DATE)
-        all_rows.extend(enrich_rows(rows, ticker))
+        rows = fetch_ticker_data(session, ticker, RUN_DATE)
+        enriched = enrich_rows(rows, ticker)
+        for row in enriched:
+            writer.writerow(row)
+            row_count += 1
         time.sleep(SLEEP_SECONDS)
 
-    df = pd.DataFrame(all_rows)
-    s3_key = upload_df_to_s3(df)
+    session.close()
 
-    df["s3_key"] = s3_key
-    load_to_postgres(df)
+    # Guard: skip upload if no data returned (prevents empty tables with wrong schema)
+    if row_count == 0:
+        print(f"No data returned for RUN_DATE={RUN_DATE}. Skipping upload.")
+        return
+
+    csv_body = csv_buffer.getvalue()
+    csv_buffer.close()
+
+    s3_key = upload_csv_to_s3(csv_body)
+
+    loaded = load_to_postgres(csv_body, s3_key)
 
     print(f"Uploaded to S3: {s3_key}")
-    print(f"Loaded {len(df)} rows into {DB_SCHEMA}.{DB_TABLE}")
+    print(f"Loaded {loaded} rows into {DB_SCHEMA}.{DB_TABLE}")
 
 if __name__ == "__main__":
     main()
