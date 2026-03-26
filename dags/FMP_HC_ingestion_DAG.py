@@ -27,7 +27,7 @@ with DAG(
     run_fmp_hc_ingestion = BashOperator(
         task_id="run_fmp_hc_ingestion",
         bash_command=(
-            "cd /opt/airflow/dlt_scripts/smp500_ingestion && "
+            "cd /opt/airflow/dlt_scripts/smp500_ingestion/orchestrated/FMP/Ingestion && "
             "python FMP_HC_ingestion.py"
         ),
     )

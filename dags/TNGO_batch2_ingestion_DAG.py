@@ -28,7 +28,7 @@ with DAG(
     run_tngo_batch2_ingestion = BashOperator(
         task_id="run_tngo_batch2_ingestion",
         bash_command=(
-            "cd /opt/airflow/dlt_scripts/smp500_ingestion && "
+            "cd /opt/airflow/dlt_scripts/smp500_ingestion/orchestrated/TNGO/Ingestion && "
             "python TNGO_batch2_ingestion.py"
         ),
     )

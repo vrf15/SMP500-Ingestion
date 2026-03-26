@@ -21,8 +21,8 @@ BASE_URL = "https://api.tiingo.com/tiingo/daily"
 TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/TNGO_SP500_BATCH3_ticker.txt")
 
 # Backfill configuration
-START_DATE = "1995-01-01"
-END_DATE = "2026-03-20"
+START_DATE = "2026-03-20"
+END_DATE = "2026-03-27"
 SLEEP_SECONDS = 0.5
 RUN_DATE = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 CHUNK_SIZE = 10  # ticker progress checkpoint interval

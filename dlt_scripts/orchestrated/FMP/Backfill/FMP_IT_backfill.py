@@ -22,8 +22,8 @@ TICKER_FILE = Path("/opt/airflow/config/smp500_ingestion/FMP_IT_ticker.txt")
 
 # Backfill configuration
 SLEEP_SECONDS = 0.5
-START_DATE = "2005-01-01"
-END_DATE = "2026-03-25"
+START_DATE = "2026-03-20"
+END_DATE = "2026-03-27"
 CHUNK_SIZE = 10  # ticker progress checkpoint interval
 MAX_CHUNK_BYTES = 500 * 1024 * 1024  # 500 MB flush threshold
 

@@ -28,7 +28,7 @@ with DAG(
     run_fhub_basic_financials = BashOperator(
         task_id="run_fhub_basic_financials",
         bash_command=(
-            "cd /opt/airflow/dlt_scripts/smp500_ingestion && "
+            "cd /opt/airflow/dlt_scripts/smp500_ingestion/orchestrated/FHUB/Ingestion && "
             "python FHUB_basic_financials_ingestion.py"
         ),
     )

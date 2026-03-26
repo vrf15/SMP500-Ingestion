@@ -28,7 +28,7 @@ with DAG(
     run_tdat_ingestion = BashOperator(
         task_id="run_tdat_ingestion",
         bash_command=(
-            "cd /opt/airflow/dlt_scripts/smp500_ingestion && "
+            "cd /opt/airflow/dlt_scripts/smp500_ingestion/orchestrated/TDAT/Ingestion && "
             "python TDAT_ingestion.py"
         ),
     )

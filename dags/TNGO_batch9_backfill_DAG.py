@@ -21,14 +21,14 @@ with DAG(
     default_args=default_args,
     description="Weekly TNGO Batch 9 backfill to S3 and Postgres",
     start_date=datetime(2026, 3, 21, tzinfo=pendulum.timezone("America/New_York")),
-    schedule="30 1 * * 1",
+    schedule="0 1 * * 0",
     catchup=False,
     tags=["smp500", "tngo", "batch9", "backfill"],
 ) as dag:
     run_tngo_batch9_backfill = BashOperator(
         task_id="run_tngo_batch9_backfill",
         bash_command=(
-            "cd /opt/airflow/dlt_scripts/smp500_ingestion && "
+            "cd /opt/airflow/dlt_scripts/smp500_ingestion/orchestrated/TNGO/Backfill && "
             "python TNGO_batch9_backfill.py"
         ),
     )
